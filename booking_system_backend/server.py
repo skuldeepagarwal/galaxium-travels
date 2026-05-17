@@ -17,9 +17,9 @@ mcp = FastMCP("Galaxium Booking System")
 
 
 @mcp.tool()
-def list_flights() -> list[FlightOut]:
-    """List all available flights.
-    Returns a list of flights with origin, destination, times, price, and seats available."""
+def list_flights() -> list[dict]:
+    """List all available flights with seat class information.
+    Returns a list of flights with origin, destination, times, base price, and seat classes (economy, business, galaxium)."""
     db = SessionLocal()
     try:
         return flight.list_flights(db)
@@ -28,14 +28,15 @@ def list_flights() -> list[FlightOut]:
 
 
 @mcp.tool()
-def book_flight(user_id: int, name: str, flight_id: int) -> BookingOut:
-    """Book a seat on a specific flight for a user.
-    Requires user_id, name, and flight_id.
-    Decrements available seats if successful.
+def book_flight(user_id: int, name: str, flight_id: int, seat_class: str = 'economy') -> BookingOut:
+    """Book a seat on a specific flight for a user with seat class selection.
+    Requires user_id, name, flight_id, and optional seat_class (economy, business, or galaxium).
+    Note: This MCP tool defaults to 1 adult passenger for simplicity. For infant bookings, use the REST API.
+    Decrements available seats for the selected class if successful.
     Returns booking details or raises an error if booking is not possible."""
     db = SessionLocal()
     try:
-        result = booking.book_flight(db, user_id, name, flight_id)
+        result = booking.book_flight(db, user_id, name, flight_id, seat_class, passengers=None)
         if isinstance(result, ErrorResponse):
             raise Exception(result.details or result.error)
         return result
@@ -46,7 +47,7 @@ def book_flight(user_id: int, name: str, flight_id: int) -> BookingOut:
 @mcp.tool()
 def get_bookings(user_id: int) -> list[BookingOut]:
     """Retrieve all bookings for a specific user by user_id.
-    Returns a list of booking details for the user."""
+    Returns a list of booking details including seat class and price paid."""
     db = SessionLocal()
     try:
         return booking.get_bookings(db, user_id)
@@ -57,7 +58,7 @@ def get_bookings(user_id: int) -> list[BookingOut]:
 @mcp.tool()
 def cancel_booking(booking_id: int) -> BookingOut:
     """Cancel an existing booking by its booking_id.
-    Increments available seats for the flight if successful.
+    Increments available seats for the flight's seat class if successful.
     Returns updated booking details or raises an error if already cancelled or not found."""
     db = SessionLocal()
     try:
@@ -116,8 +117,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Galaxium Booking System",
-    description="API for booking interplanetary flights. Swagger UI available at /docs",
-    version="1.0.0",
+    description="API for booking interplanetary flights with multiple seat classes. Swagger UI available at /docs",
+    version="2.0.0",
     lifespan=lifespan
 )
 
@@ -133,27 +134,61 @@ app.add_middleware(
 @app.get("/", tags=["Health"])
 def health_check():
     """Health check endpoint."""
-    return {"status": "OK"}
+    return {"status": "OK", "version": "2.0.0"}
 
 
-@app.get("/flights", response_model=list[FlightOut], tags=["Flights"])
+@app.get("/flights", response_model=list[dict], tags=["Flights"])
 def get_flights(db: Session = Depends(get_db)):
-    """List all available flights with origin, destination, times, price, and seats available."""
+    """List all available flights with seat class information.
+    
+    Returns flights with:
+    - Basic flight info (origin, destination, times)
+    - Base price (economy price)
+    - Seat classes breakdown (economy, business, galaxium) with individual pricing and availability
+    """
     return flight.list_flights(db)
 
 
 @app.post("/book", response_model=Union[BookingOut, ErrorResponse], tags=["Bookings"])
 def book_flight_endpoint(request: BookingRequest, db: Session = Depends(get_db)):
-    """Book a seat on a specific flight for a user.
+    """Book a seat on a specific flight for a user with seat class selection and passenger details.
 
-    Requires user_id, name, and flight_id. Decrements available seats if successful.
+    Requires:
+    - user_id: User's ID
+    - name: User's name (must match registered name)
+    - flight_id: Flight to book
+    - seat_class: 'economy', 'business', or 'galaxium' (default: 'economy')
+    - passengers: Optional list of passengers (adults and infants). If omitted, defaults to 1 adult.
+    
+    Passenger types:
+    - adult: Full fare passenger
+    - lap_infant: Infant (0-2 years) sitting on adult's lap (10% fare, no seat)
+    - infant_seat: Infant (0-2 years) with own seat (50% fare, occupies seat)
+    
+    Business rules:
+    - At least 1 adult required per booking
+    - Maximum 1 lap infant per adult
+    - Infant seats count toward seat availability, lap infants don't
+    
+    Decrements available seats for the selected class if successful.
+    Returns booking details with passenger breakdown and total price.
     """
-    return booking.book_flight(db, request.user_id, request.name, request.flight_id)
+    return booking.book_flight(
+        db,
+        request.user_id,
+        request.name,
+        request.flight_id,
+        request.seat_class,
+        request.passengers
+    )
 
 
 @app.get("/bookings/{user_id}", response_model=list[BookingOut], tags=["Bookings"])
 def get_user_bookings(user_id: int, db: Session = Depends(get_db)):
-    """Retrieve all bookings for a specific user by user_id."""
+    """Retrieve all bookings for a specific user by user_id.
+    
+    Returns booking details including seat class and price paid for each booking.
+    """
     return booking.get_bookings(db, user_id)
 
 
@@ -161,7 +196,8 @@ def get_user_bookings(user_id: int, db: Session = Depends(get_db)):
 def cancel_booking_endpoint(booking_id: int, db: Session = Depends(get_db)):
     """Cancel an existing booking by its booking_id.
 
-    Increments available seats for the flight if successful.
+    Increments available seats for the flight's seat class if successful.
+    Returns updated booking details.
     """
     return booking.cancel_booking(db, booking_id)
 
@@ -188,3 +224,5 @@ app.mount("/mcp", mcp_app)
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8080)
+
+# Made with Bob

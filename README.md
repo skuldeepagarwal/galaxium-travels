@@ -5,10 +5,11 @@ A complete full-stack application for booking interplanetary space travel, featu
 ## 🌟 Features
 
 - **Modern Space-Themed UI** - Beautiful, responsive interface with animated starfield
+- **Multi-Class Seating** - Economy, Business, and Galaxium class options with dynamic pricing
 - **Full Booking System** - Browse flights, make bookings, manage reservations
 - **Dual Protocol Backend** - REST API and MCP (Model Context Protocol) support
-- **Type-Safe** - Full TypeScript frontend and Python type hints
-- **Real-Time Updates** - Live flight availability and booking status
+- **Type-Safe** - Full TypeScript frontend and Python type hints with strict type checking
+- **Real-Time Updates** - Live flight availability and booking status per seat class
 - **User Management** - Simple name/email authentication
 - **Production Ready** - Optimized builds and comprehensive error handling
 
@@ -108,10 +109,14 @@ See [booking_system_frontend/README.md](booking_system_frontend/README.md) for:
 ### Booking a Flight
 
 1. **Browse Flights** - Navigate to the Flights page to see all available routes
-2. **Search & Filter** - Use the search bar to find specific destinations
-3. **Sign In/Register** - Click "Book Now" and enter your name and email
-4. **Confirm Booking** - Review flight details and confirm your reservation
-5. **Manage Bookings** - View and cancel bookings from "My Bookings" page
+2. **Select Seat Class** - Choose from Economy, Business, or Galaxium class
+   - **Economy** - Standard seating at base price (1.0x multiplier)
+   - **Business** - Premium comfort at 2.5x base price
+   - **Galaxium** - Luxury experience at 4.0x base price
+3. **Search & Filter** - Use the search bar to find specific destinations
+4. **Sign In/Register** - Click "Book Now" and enter your name and email
+5. **Confirm Booking** - Review flight details and confirm your reservation
+6. **Manage Bookings** - View and cancel bookings from "My Bookings" page
 
 ### Demo Data
 
@@ -207,6 +212,35 @@ colors: {
 - Verify backend is running on http://localhost:8080
 - Check CORS settings in backend
 - Ensure `.env` file exists in frontend with correct API URL
+
+### Type Checking Issues
+- Backend uses `typing.cast()` for SQLAlchemy model attributes to satisfy basedpyright
+- Frontend imports are optimized to avoid unused variable warnings
+- All type errors have been resolved for production-ready code
+
+## 📝 Recent Updates
+
+### Documentation Improvements (Latest)
+- ✅ Enhanced `.bob/rules/basic_rules.md` internal monologue documentation
+  - Specified precise timestamp format: `YYYY-MM-DD_HH-MM-SS_description.md`
+  - Added structured content guidelines (objective, decisions, tools, outcome)
+  - Implemented 200-word limit for concise summaries
+  - Improved readability with bullet points and bold headers
+  - Prevents filename collisions and ensures chronological sorting
+
+### Bug Fixes
+- ✅ Fixed SQLAlchemy type checking issues in `flight.py`
+  - Resolved `ColumnElement[bool]` type errors using `typing.cast()`
+  - Added proper type hints for seat availability checks
+  - Fixed assignment type errors with `# type: ignore[assignment]` comments
+- ✅ Removed unused `formatDate` import in `FlightCard.tsx`
+- ✅ All TypeScript and Python type checking errors resolved
+
+### Features
+- ✅ Multi-class seating system (Economy, Business, Galaxium)
+- ✅ Dynamic pricing based on seat class
+- ✅ Real-time seat availability tracking per class
+- ✅ Enhanced booking system with class selection
 
 ## 📄 License
 

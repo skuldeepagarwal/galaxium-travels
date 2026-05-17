@@ -10,6 +10,74 @@ interface UserIdentificationProps {
   onSuccess: () => void;
 }
 
+// Email validation regex pattern (RFC 5322 compliant)
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+/**
+ * Validates email address format and constraints
+ * @param email - Email address to validate
+ * @returns Object with validation result and error message
+ */
+const validateEmail = (email: string): { isValid: boolean; error?: string } => {
+  // Check for empty or whitespace-only input
+  if (!email || !email.trim()) {
+    return { isValid: false, error: 'Email address is required' };
+  }
+
+  const trimmedEmail = email.trim().toLowerCase();
+
+  // Check length constraints (RFC 5321)
+  if (trimmedEmail.length > 254) {
+    return { isValid: false, error: 'Email address is too long (max 254 characters)' };
+  }
+
+  // Validate format using regex
+  if (!EMAIL_REGEX.test(trimmedEmail)) {
+    return { isValid: false, error: 'Please enter a valid email address' };
+  }
+
+  // Check for consecutive dots
+  if (trimmedEmail.includes('..')) {
+    return { isValid: false, error: 'Email cannot contain consecutive dots' };
+  }
+
+  // Validate local part (before @) length
+  const [localPart] = trimmedEmail.split('@');
+  if (localPart.length > 64) {
+    return { isValid: false, error: 'Email local part is too long (max 64 characters)' };
+  }
+
+  return { isValid: true };
+};
+
+/**
+ * Validates name input
+ * @param name - Name to validate
+ * @returns Object with validation result and error message
+ */
+const validateName = (name: string): { isValid: boolean; error?: string } => {
+  if (!name || !name.trim()) {
+    return { isValid: false, error: 'Name is required' };
+  }
+
+  const trimmedName = name.trim();
+
+  if (trimmedName.length < 2) {
+    return { isValid: false, error: 'Name must be at least 2 characters' };
+  }
+
+  if (trimmedName.length > 100) {
+    return { isValid: false, error: 'Name is too long (max 100 characters)' };
+  }
+
+  // Check for valid characters (letters, spaces, hyphens, apostrophes)
+  if (!/^[a-zA-Z\s'-]+$/.test(trimmedName)) {
+    return { isValid: false, error: 'Name can only contain letters, spaces, hyphens, and apostrophes' };
+  }
+
+  return { isValid: true };
+};
+
 export const UserIdentification = ({ isOpen, onClose, onSuccess }: UserIdentificationProps) => {
   const { setUser } = useUser();
   const [name, setName] = useState('');
@@ -20,8 +88,17 @@ export const UserIdentification = ({ isOpen, onClose, onSuccess }: UserIdentific
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!name.trim() || !email.trim()) {
-      toast.error('Please fill in all fields');
+    // Validate name
+    const nameValidation = validateName(name);
+    if (!nameValidation.isValid) {
+      toast.error(nameValidation.error || 'Invalid name');
+      return;
+    }
+
+    // Validate email
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.isValid) {
+      toast.error(emailValidation.error || 'Invalid email');
       return;
     }
 

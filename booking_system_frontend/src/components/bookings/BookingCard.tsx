@@ -1,6 +1,7 @@
 import type { Booking, Flight } from '../../types';
+import { SEAT_CLASS_CONFIGS, PASSENGER_TYPE_CONFIGS } from '../../types';
 import { Card, Button } from '../common';
-import { Plane, Calendar, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Plane, Calendar, CheckCircle, XCircle, Clock, Users } from 'lucide-react';
 import { formatDate, formatCurrency } from '../../utils/formatters';
 import { motion } from 'framer-motion';
 
@@ -39,6 +40,7 @@ export const BookingCard = ({ booking, flight, onCancel, isCancelling }: Booking
   };
 
   const canCancel = booking.status === 'booked';
+  const config = SEAT_CLASS_CONFIGS[booking.seat_class];
 
   return (
     <motion.div
@@ -91,16 +93,65 @@ export const BookingCard = ({ booking, flight, onCancel, isCancelling }: Booking
               </div>
             </div>
 
+            {/* Seat Class */}
+            <div className="bg-space-dark/30 rounded-lg p-3">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-xl">{config.icon}</span>
+                <span className="font-semibold text-star-white">
+                  {config.name} Class
+                </span>
+              </div>
+              <p className="text-xs text-star-white/60">
+                {config.features[0]}
+              </p>
+            </div>
+
+            {/* Passengers Section */}
+            {booking.passengers && booking.passengers.length > 0 && (
+              <div className="bg-space-dark/30 rounded-lg p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Users size={16} className="text-cosmic-purple" />
+                  <span className="text-sm font-semibold text-star-white">
+                    Passengers ({booking.passengers.length})
+                  </span>
+                </div>
+                <div className="space-y-2">
+                  {booking.passengers.map((passenger) => {
+                    const passengerConfig = PASSENGER_TYPE_CONFIGS[passenger.passenger_type];
+                    return (
+                      <div key={passenger.passenger_id} className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                          <span>{passengerConfig.icon}</span>
+                          <span className="text-star-white/80">
+                            {passengerConfig.name}
+                            {passenger.age !== undefined && ` (${passenger.age}y)`}
+                            {passenger.name && ` - ${passenger.name}`}
+                          </span>
+                        </div>
+                        <span className="text-star-white/60">
+                          {formatCurrency(passenger.price_paid)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center justify-between pt-3 border-t border-white/10">
-              <span className="text-sm text-star-white/60">Price</span>
-              <span className="text-lg font-bold text-star-white">
-                {formatCurrency(flight.price)}
+              <span className="text-sm text-star-white/60">Total Paid</span>
+              <span className="text-lg font-bold text-cosmic-purple">
+                {formatCurrency(booking.price_paid)}
               </span>
             </div>
           </div>
         ) : (
           <div className="mb-4">
             <p className="text-sm text-star-white/60">Flight ID: {booking.flight_id}</p>
+            <div className="flex items-center gap-2 mt-2">
+              <span className="text-xl">{config.icon}</span>
+              <span className="text-star-white">{config.name} Class</span>
+            </div>
           </div>
         )}
 
